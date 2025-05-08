@@ -16,57 +16,76 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
-# --- Google Benchmark ---
-# FetchContent_Declare(
-#   benchmark
-#   URL https://github.com/google/benchmark/archive/refs/heads/main.zip
-#   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-# )
-# FetchContent_MakeAvailable(benchmark)
+#--- Google Benchmark ---
+set(BENCHMARK_ENABLE_TESTING        OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_GTEST_TESTS    OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_INSTALL        OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+  benchmark
+  URL https://github.com/google/benchmark/archive/refs/heads/main.zip
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_MakeAvailable(benchmark)
 
-# FetchContent_Declare(
-#   eigen
-#   URL https://gitlab.com/libeigen/eigen/-/archive/master/eigen-master.zip
-#   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-# )
-# FetchContent_MakeAvailable(eigen)
+add_library(core INTERFACE)
+
+# Where users can #include your headers
+target_include_directories(core INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/structures>
+  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/nonlinear>
+)
 
 add_executable(${PROJECT_NAME}
   main.cpp
 )
 
-target_include_directories(
-  ${PROJECT_NAME} 
-  PRIVATE 
-  #${eigen_SOURCE_DIR}  
-  ${CMAKE_SOURCE_DIR}/structures
-  ${CMAKE_SOURCE_DIR}/nonlinear
-)
-
 find_package(Ceres REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE Ceres::ceres)
+find_package(TBB CONFIG REQUIRED)
+include_directories(${CERES_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PRIVATE core PRIVATE Ceres::ceres PRIVATE TBB::tbb)
 
 
 #--- Тесты ---
-# enable_testing()
+enable_testing()
+include(GoogleTest)
 
-# add_executable(tests
-#   tests/test_main.cpp
-#   tests/test_solver.cpp
-#   tests/test_utils.cpp
-# )
+add_executable(unit_tests
+  tests/test_main.cpp
+  tests/test_solver.cpp
+)
 
-# target_include_directories(
-#   tests 
-#   PRIVATE 
-#   ${eigen_SOURCE_DIR}  
-#   ${CMAKE_SOURCE_DIR}/matrix
-#   ${CMAKE_SOURCE_DIR}/nonlinear
-# )
-# target_link_libraries(tests gtest_main)
+target_include_directories(
+  unit_tests 
+  PRIVATE  
+  ${CMAKE_SOURCE_DIR}/structures
+  ${CMAKE_SOURCE_DIR}/nonlinear
+)
+target_link_libraries(unit_tests PRIVATE gtest_main core Ceres::ceres)
 
-# add_test(NAME AllTests COMMAND tests)
+#add_test(NAME AllTests COMMAND tests)
+
+gtest_discover_tests(unit_tests
+  PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+    LABELS "unit"
+)
+
 
 # --- Бенчмарки ---
-# add_executable(benchmarks benchmark/sample_benchmark.cpp)
-# target_link_libraries(benchmarks benchmark::benchmark)
+
+add_executable(benchmarks
+benchmarks/benchmark_solver.cpp
+)
+target_include_directories(
+  benchmarks
+  PRIVATE
+  ${CMAKE_SOURCE_DIR}/structures
+  ${CMAKE_SOURCE_DIR}/nonlinear
+)
+target_link_libraries(benchmarks
+  PRIVATE
+    benchmark::benchmark      # <-- this target carries include dirs
+    Threads::Threads         # <-- pthread
+    Ceres::ceres
+)
+

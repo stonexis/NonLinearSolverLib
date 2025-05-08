@@ -1,0 +1,47 @@
+name: Build - Test - Benchmark
+
+on: [push, pull_request]
+
+jobs:
+  test-and-bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30         # optional safety net
+
+    steps:
+    # 1)  Get the sources
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # 2)  System requirements (ninja, C++ toolchain, etc.)
+    - name: Install deps
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build cmake g++       # add libtbb-dev, etc. if needed
+
+    # 3)  Configure *Release* build (benchmarks need optimisation flags)
+    - name: Configure (CMake)
+      run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+    # 4)  Compile everything (app, unit_tests, benchmarks)
+    - name: Build
+      run: cmake --build build --parallel
+
+    # 5)  Run Google-Test suite (fails the job if any test fails)
+    - name: Run unit tests
+      run: ctest --test-dir build --output-on-failure
+
+    # 6)  Run Google-Benchmark and capture JSON
+    - name: Run benchmarks
+      run: |
+        ./build/benchmarks \
+          --benchmark_out=bench.json \
+          --benchmark_out_format=json \
+          --benchmark_repetitions=8 \
+          --benchmark_display_aggregates_only=true
+
+    # 7)  Upload the report so you can inspect or diff it later
+    - name: Upload benchmark report
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: bench.json

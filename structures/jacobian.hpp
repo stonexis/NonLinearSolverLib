@@ -2,6 +2,8 @@
 #include <cstddef>
 #include <type_traits>
 #include <algorithm>
+#include <iostream>
+#include <iomanip>
 
 
 //-------------------------------------------------
@@ -24,7 +26,11 @@ struct VectorX{
             m = std::max<T>(m, std::abs(v));
         return m;
     }
-
+    constexpr void print() const noexcept {
+        for(const auto& v : _data)
+            std::cout << std::setprecision(9) << std::scientific << v << " ";
+            std::cout << '\n';
+    }
     T _data[N];
 };
 

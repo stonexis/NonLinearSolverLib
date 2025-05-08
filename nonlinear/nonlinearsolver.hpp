@@ -9,24 +9,23 @@ template<class Mat> struct ProxyNewtonDiscrete;
 
 template <typename T>
     struct SolverOptions {
-        T eps_res_abs  = T(1e-12);
-        T eps_res_rel  = T(1e-8);
-        T eps_step_abs = T(1e-12);
-        T eps_step_rel = T(1e-8);
+        T eps_res_abs = T(1e-12); //Допуск по невязке
+        T eps_step_abs = T(1e-12); //Допуск по размеру шага
 
+        std::size_t k_refresh_J = 3; //Количество шагов, через которые обновляется Якобиан
         std::size_t max_iter = 100;
     };
 
 namespace Backend {
+    ///Модифицированный метод Ньютона при k_refresh_J = 1 - обычный Ньютон
     template<class MatF, class VecF, class VecX, 
                                      class Opt = SolverOptions<typename MatF::Scalar>>
-    [[nodiscard]]VecX solve_newton_modified(
-                                        const MatF& J, 
-                                        const VecF& F, 
-                                        VecX& x0, 
-                                        const Opt& options = {}
-                                    );
-
+    [[nodiscard]]std::pair<VecX, std::size_t> solve_newton_modified(
+                                                                const MatF& J, 
+                                                                const VecF& F, 
+                                                                VecX& x0, 
+                                                                const Opt& options = {}
+                                                            );                                                       
     template <class Mat>
     void inplace_lu_decomposition(Mat& matrix_A);
     
@@ -36,12 +35,10 @@ namespace Backend {
 
 }
 
-
 template<class MatF>
 struct Tools {
     const MatF& J;
     constexpr auto simple_iter()      const noexcept { return ProxySimpleIter {J}; }
-    constexpr auto newton()           const noexcept { return ProxyNewton {J}; }
     constexpr auto newton_modified()  const noexcept { return ProxyNewtonModified {J}; }
     constexpr auto newton_discrete()  const noexcept { return ProxyNewtonDiscrete {J}; }
 };

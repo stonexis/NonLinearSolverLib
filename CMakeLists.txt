@@ -27,6 +27,21 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(benchmark)
 
+#--- Ceres ----
+set(CERES_USE_CXSPARSE OFF CACHE BOOL "" FORCE)
+
+set(BUILD_TESTING    OFF CACHE BOOL "" FORCE)
+set(BUILD_EXAMPLES   OFF CACHE BOOL "" FORCE)
+set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+  ceres
+  GIT_REPOSITORY https://github.com/ceres-solver/ceres-solver.git
+  GIT_TAG        2.2.0
+)
+
+FetchContent_MakeAvailable(ceres)
+
+
 add_library(core INTERFACE)
 
 # Where users can #include your headers
@@ -39,10 +54,8 @@ add_executable(${PROJECT_NAME}
   main.cpp
 )
 
-find_package(Ceres REQUIRED)
-find_package(TBB CONFIG REQUIRED)
 include_directories(${CERES_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE core PRIVATE Ceres::ceres PRIVATE TBB::tbb)
+target_link_libraries(${PROJECT_NAME} PRIVATE core PRIVATE ceres)
 
 
 #--- Тесты ---
@@ -60,7 +73,7 @@ target_include_directories(
   ${CMAKE_SOURCE_DIR}/structures
   ${CMAKE_SOURCE_DIR}/nonlinear
 )
-target_link_libraries(unit_tests PRIVATE gtest_main core Ceres::ceres)
+target_link_libraries(unit_tests PRIVATE gtest_main core ceres)
 
 #add_test(NAME AllTests COMMAND tests)
 
@@ -72,7 +85,7 @@ gtest_discover_tests(unit_tests
 
 
 # --- Бенчмарки ---
-
+find_package(Threads REQUIRED)
 add_executable(benchmarks
 benchmarks/benchmark_solver.cpp
 )
@@ -86,6 +99,6 @@ target_link_libraries(benchmarks
   PRIVATE
     benchmark::benchmark      # <-- this target carries include dirs
     Threads::Threads         # <-- pthread
-    Ceres::ceres
+    ceres
 )
 

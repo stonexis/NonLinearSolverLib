@@ -16,7 +16,7 @@ jobs:
     - name: Install deps
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build cmake g++ libeigen3-dev      # add libtbb-dev, etc. if needed
+        sudo apt-get install -y ninja-build cmake g++ libeigen3-dev libgflags-dev libgoogle-glog-dev     # add libtbb-dev, etc. if needed
     
     # 3)  Configure *Release* build (benchmarks need optimisation flags)
     - name: Configure (CMake)

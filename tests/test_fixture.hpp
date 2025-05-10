@@ -2,7 +2,7 @@
 #include <memory>
 #include "gtest/gtest.h"
 #include <ceres/ceres.h>
-#include "nonlinearsolver.hpp"
+#include "nlslib.hpp"
 
 
 using T = double;
@@ -10,7 +10,7 @@ constexpr std::size_t N = 2;
 using VecX = VectorX<T, N>;
 using VecF = VectorF<T, N>;
 using Jac = Jacobian<T, N, N>;
-using Opt = SolverOptions<double>;
+using Opt = SolverOptions<VecX>;
 
 struct Functors {
     // F(x)  (return scalar)  and  J_ij(x)  (return scalar)
@@ -41,8 +41,7 @@ struct NewtonFixture : public ::testing::Test {
 
         Jptr = std::make_unique<Jac>(Jac(Functors::J00, Functors::J01, Functors::J10, Functors::J11));
         Fptr = std::make_unique<VecF>(VecF(Functors::F0, Functors::F1));
-        x0ptr = std::make_unique<VecX>(VecX{-0.5, 0.5});
-
+        x0ptr = std::make_unique<VecX>(VecX{1.38, 3.99});
         //CERES
         problem.AddResidualBlock(new ceres::AutoDiffCostFunction<CeresF,2,2>(new CeresF), nullptr, x_ceres);
         opts.minimizer_type = ceres::TRUST_REGION;
@@ -60,11 +59,11 @@ struct NewtonFixture : public ::testing::Test {
     std::unique_ptr<Jac>  Jptr; //Оборачиваем в указатели, поскольку у обьектов Jac VecF нет конструкторов по умолчанию,
     std::unique_ptr<VecF> Fptr; //(в противном случае, чтобы скомпилировалось,
     std::unique_ptr<VecX> x0ptr; //необходимо писать явный конструктор фикстуры с какими то значениями, что на практиве не реализуется)
-    
+    Opt options = Opt({0.1,-0.1});
     // Ceres data
     ceres::Problem problem;
     ceres::Solver::Options opts;
     ceres::Solver::Summary summary;
-    double x_ceres[2]{-0.5, 0.5};
+    double x_ceres[2]{1.38, 3.99};
 };
 

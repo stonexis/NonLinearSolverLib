@@ -44,7 +44,6 @@ FetchContent_MakeAvailable(ceres)
 
 add_library(core INTERFACE)
 
-# Where users can #include your headers
 target_include_directories(core INTERFACE
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/structures>
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/nonlinear>

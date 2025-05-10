@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
-
+#include "matrix.hpp"
 
 //-------------------------------------------------
 
@@ -28,8 +28,7 @@ struct VectorX{
     }
     constexpr void print() const noexcept {
         for(const auto& v : _data)
-            std::cout << std::setprecision(9) << std::scientific << v << " ";
-            std::cout << '\n';
+            std::cout << std::left << std::setprecision(9) << std::scientific << std::setw(20) << v << " ";
     }
     T _data[N];
 };
@@ -61,27 +60,40 @@ private:
 };
 
 //-------------------------------------------------
-
+//Вектор функций, каждая функция от N аргументов 
 template <typename R, 
          std::size_t N, 
-         template<typename,std::size_t> class VecT = VectorX>
+         template<typename,std::size_t> class VecT = VectorX,
+         template<typename,std::size_t,std::size_t> class MatT = Matrix>
 class VectorF
 {
 public:
-    using Vec = VecT<R,N>;
+    using Vec = VecT<R, N>; //Формат внутреннего представления аргументов функций
+    using Mat = MatT<R, N, N>; //Формат результата операции взятия численного Якобиана
     using FuncPtr = R (*)(const Vec&); //F_i : Vec -> R
     using Scalar = R;
 
     static constexpr std::size_t size = N;
 
     template<typename... Fs,
-             typename = std::enable_if_t<(sizeof...(Fs)==N)>>
+             typename = std::enable_if_t<(sizeof...(Fs)==N)>> //Если передано не N функций - ошибка на этапе компиляции
     constexpr explicit VectorF(Fs... fs) noexcept : f_{static_cast<FuncPtr>(fs)...} {}
+
+    constexpr void GetNumericJacInplace(Mat& Jac, const Vec& args, R eps = 1e-10) const noexcept {
+        Vec args_copy = args;
+        for (std::size_t i = 0; i < N; i++){
+            for (std::size_t j = 0; j < N; j++){
+                args_copy[j] += eps; //Добавление возмущения для численной производной по j компоненте
+                Jac(i, j) = (f_[i](args_copy) - f_[i](args)) / eps; //[F(x+h) - F(x)]/h
+                args_copy[j] -= eps; //Необходима производная по отдельной компоненте, необходимо отнять прибавленное возмущение, для вычисления следующей производной
+            }
+        }
+    } 
 
     constexpr FuncPtr&       operator()(std::size_t i)       noexcept { return f_[i]; }
     constexpr const FuncPtr& operator()(std::size_t i) const noexcept { return f_[i]; }
 
 private:
-    FuncPtr f_[N]{};
+    FuncPtr f_[N]{}; //Аргументы функций не хранятся в структуре
 };
 

@@ -1,14 +1,14 @@
 #include <memory>
 #include <ceres/ceres.h>
 #include <benchmark/benchmark.h>
-#include "nonlinearsolver.hpp" 
+#include "nlslib.hpp" 
 
 using T = double;
 constexpr std::size_t N = 2;                    
 using VecX = VectorX<T, N>;
 using VecF = VectorF<T, N>;
 using Jac = Jacobian<T, N, N>;
-using Opt = SolverOptions<double>;
+using Opt = SolverOptions<VecX>;
 
 struct Functors {
     // F(x)  (return scalar)  and  J_ij(x)  (return scalar)
@@ -58,6 +58,7 @@ struct NewtonFixture : public benchmark::Fixture {
     std::unique_ptr<Jac>  Jptr; //Оборачиваем в указатели, поскольку у обьектов Jac VecF нет конструкторов по умолчанию,
     std::unique_ptr<VecF> Fptr; //(в противном случае, чтобы скомпилировалось,
     std::unique_ptr<VecX> x0ptr; //необходимо писать явный конструктор фикстуры с какими то значениями, что на практиве не реализуется)
+    Opt options = Opt({0.01,-0.01});
     
     // Ceres data
     ceres::Problem problem;
